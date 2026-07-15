@@ -1,6 +1,12 @@
-<!-- src/routes/+page.svelte -->
 <script>
 	import { onMount } from 'svelte';
+
+	// Constants for fallback values
+	const FALLBACK = {
+		name: 'Kathleen',
+		role: 'Software Engineer',
+		bio: 'I build scalable backend systems and developer tooling. Currently completing my CS degree at UP Diliman.'
+	};
 
 	export let data;
 
@@ -16,15 +22,78 @@
 	];
 
 	let activeSection = 'about';
+	let theme = 'light';
+	let mounted = false;
+
+	// Theme management functions
+	function getInitialTheme() {
+		if (typeof localStorage === 'undefined' || typeof window === 'undefined') {
+			return 'light';
+		}
+
+		try {
+			const saved = localStorage.getItem('theme');
+			if (saved === 'dark' || saved === 'light') {
+				return saved;
+			}
+
+			// Check system preference
+			return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+		} catch (error) {
+			console.error('Failed to get theme preference:', error);
+			return 'light';
+		}
+	}
+
+	function applyTheme(newTheme) {
+		try {
+			document.documentElement.setAttribute('data-theme', newTheme);
+			localStorage.setItem('theme', newTheme);
+			theme = newTheme;
+		} catch (error) {
+			console.error('Failed to apply theme:', error);
+		}
+	}
+
+	function toggleTheme() {
+		const newTheme = theme === 'light' ? 'dark' : 'light';
+		applyTheme(newTheme);
+	}
+
+	// Date formatting utilities
+	function formatDate(d) {
+		if (!d) return '';
+		try {
+			return new Date(d).toLocaleDateString('en-US', {
+				month: 'short',
+				year: 'numeric'
+			});
+		} catch (error) {
+			console.error('Failed to format date:', error);
+			return '';
+		}
+	}
+
+	function formatRange(start, end, isCurrent) {
+		const from = formatDate(start);
+		const to = isCurrent ? 'Present' : formatDate(end) || 'Present';
+		return from ? `${from} – ${to}` : to;
+	}
 
 	onMount(() => {
+		mounted = true;
+		const initialTheme = getInitialTheme();
+		applyTheme(initialTheme);
+
+		// Intersection Observer for active nav
 		const observer = new IntersectionObserver(
 			(entries) => {
-				entries.forEach((entry) => {
-					if (entry.isIntersecting) activeSection = entry.target.id;
-				});
+				const visible = entries.find((entry) => entry.isIntersecting);
+				if (visible) {
+					activeSection = visible.target.id;
+				}
 			},
-			{ rootMargin: '-40% 0px -50% 0px' }
+			{ rootMargin: '-40% 0px -50% 0px', threshold: 0.1 }
 		);
 
 		sections.forEach(({ id }) => {
@@ -32,398 +101,1048 @@
 			if (el) observer.observe(el);
 		});
 
-		// Update active class on nav links
-		const navLinks = document.querySelectorAll('.nav-link');
-		navLinks.forEach(link => {
-			link.classList.remove('active');
-			if (link.getAttribute('href') === `#${activeSection}`) {
-				link.classList.add('active');
-			}
-		});
-
 		return () => observer.disconnect();
 	});
-
-	// Update active state when section changes
-	$: {
-		if (typeof document !== 'undefined') {
-			const navLinks = document.querySelectorAll('.nav-link');
-			navLinks.forEach(link => {
-				link.classList.remove('active');
-				if (link.getAttribute('href') === `#${activeSection}`) {
-					link.classList.add('active');
-				}
-			});
-		}
-	}
-
-	function formatDate(d) {
-		if (!d) return '';
-		return new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-	}
-
-	function formatRange(start, end, isCurrent) {
-		const from = formatDate(start);
-		const to = isCurrent ? 'Present' : formatDate(end) || 'Present';
-		return [from, to].filter(Boolean).join(' – ');
-	}
 </script>
 
 <svelte:head>
-	<title>{profile?.name ? `${profile.name} — Portfolio` : 'Portfolio'}</title>
-	{#if profile?.bio}<meta name="description" content={profile.bio} />{/if}
+	<title>{profile?.name || FALLBACK.name} — Portfolio</title>
+	{#if profile?.bio}
+		<meta name="description" content={profile.bio} />
+	{:else}
+		<meta name="description" content={FALLBACK.bio} />
+	{/if}
 </svelte:head>
 
-<main>
-	<section id="about" class="hero">
-		<p class="eyebrow">// PERSONNEL</p>
-		<h1>{profile?.name || 'Your Name'}</h1>
-		<p class="role">{profile?.role || 'Software Developer'}</p>
-		{#if profile?.bio}<p class="bio">{profile.bio}</p>{/if}
+<!-- Theme Toggle -->
+{#if mounted}
+	<button class="theme-toggle" on:click={toggleTheme} aria-label="Toggle theme">
+		{theme === 'dark' ? '☀️' : '🌙'}
+	</button>
+{/if}
 
-		<div class="cta-row">
-			<a href="#work" class="btn">[ OPEN DOSSIER ]</a>
-			{#if profile?.email}<a href="mailto:{profile.email}" class="btn btn-outline">[ SEND MESSAGE ]</a>{/if}
+<div class="container">
+	<!-- Header -->
+	<header class="header">
+		<span class="logo">
+			<span class="sparkle">✦</span> 
+			{profile?.name || FALLBACK.name}
+			<span>Jocson</span>
+		</span>
+		<nav class="nav">
+			{#each sections as s}
+				<a href="#{s.id}" class:active={activeSection === s.id}>{s.label}</a>
+			{/each}
+			<a href="/admin" class="admin">Admin</a>
+		</nav>
+	</header>
+
+	<!-- Hero Section -->
+	<section id="about" class="hero">
+		<span class="hero-badge">⚡ Available for opportunities</span>
+		<h1>
+			Hi, I'm <span class="highlight">{profile?.name || FALLBACK.name}</span>
+		</h1>
+		<p class="role">
+			{profile?.role || FALLBACK.role}
+		</p>
+		{#if profile?.bio}
+			<p class="bio">{profile.bio}</p>
+		{:else}
+			<p class="bio">{FALLBACK.bio}</p>
+		{/if}
+
+		<div class="actions">
+			<a href="#work" class="btn btn-primary">View My Work</a>
+			{#if profile?.email}
+				<a href="mailto:{profile.email}" class="btn btn-outline">Let's Talk</a>
+			{/if}
 		</div>
 
 		{#if profile?.skills?.length}
-			<ul class="skills">
+			<div class="skills">
 				{#each profile.skills as skill}
-					<li>{skill}</li>
+					<span class="skill">{skill}</span>
 				{/each}
-			</ul>
+			</div>
 		{/if}
 	</section>
 
-	<section id="work">
-		<p class="eyebrow">02 // MISSION ARCHIVE</p>
-		<h2>Projects</h2>
+	<hr class="divider" />
+
+	<!-- Work Section -->
+	<section id="work" class="section">
+		<h2 class="section-title">Selected <span class="accent">Work</span></h2>
 		{#if projects.length}
 			<div class="grid">
 				{#each projects as p (p.id)}
-					<article class="card">
-						{#if p.featured}<span class="featured-tag">▮ PRIORITY</span>{/if}
-						<h3>MISSION_{String(p.id).padStart(3, '0')}</h3>
-						<p class="mission-title">{p.title}</p>
-						{#if p.description}<p class="desc">{p.description}</p>{/if}
-						{#if p.tech_stack?.length}
-							<ul class="tags">
-								{#each p.tech_stack as t}<li>{t}</li>{/each}
-							</ul>
+					<article class="project">
+						{#if p.image_url}
+							<div class="project-image-wrapper">
+								<img src={p.image_url} alt={p.title} class="project-image" />
+							</div>
 						{/if}
-						<div class="card-links">
-							{#if p.project_url}<a href={p.project_url} target="_blank" rel="noreferrer">▸ View live</a>{/if}
-							{#if p.github_url}<a href={p.github_url} target="_blank" rel="noreferrer">▸ Source</a>{/if}
+						<div class="project-content">
+							{#if p.featured}
+								<span class="tag">⭐ Featured</span>
+							{:else}
+								<span class="tag">📦 Project</span>
+							{/if}
+							<h3>{p.title}</h3>
+							{#if p.description}<p class="desc">{p.description}</p>{/if}
+							{#if p.tech_stack?.length}
+								<span class="stack">
+									{#each p.tech_stack as tech, i}
+										{#if i === 0}<span class="highlight">{tech}</span>{:else}{tech}{/if}
+										{#if i < p.tech_stack.length - 1} · {/if}
+									{/each}
+								</span>
+							{/if}
+							<div class="project-links">
+								{#if p.project_url}
+									<a href={p.project_url} target="_blank" rel="noreferrer" class="project-link">
+										View Live
+									</a>
+								{/if}
+								{#if p.github_url}
+									<a href={p.github_url} target="_blank" rel="noreferrer" class="project-link">
+										Source
+									</a>
+								{/if}
+							</div>
 						</div>
 					</article>
 				{/each}
 			</div>
 		{:else}
-			<p class="empty">No missions recorded — add some from <a href="/admin">/admin</a>.</p>
+			<p class="empty">No projects yet — add some from <a href="/admin">/admin</a>.</p>
 		{/if}
 	</section>
 
-	<section id="experience">
-		<p class="eyebrow">03 // OPERATION HISTORY</p>
-		<h2>Experience</h2>
+	<hr class="divider" />
+
+	<!-- Experience Section -->
+	<section id="experience" class="section">
+		<h2 class="section-title"><span class="accent">Experience</span></h2>
 		{#if experience.length}
-			<ul class="timeline">
+			<div class="timeline">
 				{#each experience as e (e.id)}
-					<li>
-						<div class="tl-date">{formatRange(e.start_date, e.end_date, e.is_current)}</div>
-						<div class="tl-content">
-							<h3>{e.role}</h3>
-							<p class="company">{e.company}</p>
-							{#if e.description}<p class="desc">{e.description}</p>{/if}
-							{#if e.tech_stack?.length}
-								<ul class="tags">
-									{#each e.tech_stack as t}<li>{t}</li>{/each}
-								</ul>
-							{/if}
-						</div>
-					</li>
+					<div class="timeline-item">
+						<span class="timeline-year">{formatRange(e.start_date, e.end_date, e.is_current)}</span>
+						<span class="timeline-content">
+							{e.role}
+							<span class="company">{e.company}</span>
+						</span>
+					</div>
 				{/each}
-			</ul>
+			</div>
 		{:else}
-			<p class="empty">No operations logged — add some from <a href="/admin">/admin</a>.</p>
+			<p class="empty">No experience yet — add some from <a href="/admin">/admin</a>.</p>
 		{/if}
 	</section>
 
-	<footer id="contact">
-		<p class="eyebrow">05 // SYSTEM LINKS</p>
-		<h2>Contact</h2>
-		{#if profile?.bio}<p class="desc">Establish secure channel — transmissions are encrypted.</p>{/if}
-		<div class="cta-row">
-			{#if profile?.email}<a href="mailto:{profile.email}" class="btn">{profile.email}</a>{/if}
+	<hr class="divider" />
+
+	<!-- Contact Section -->
+	<footer id="contact" class="section">
+		<h2 class="section-title">Let's <span class="accent">Connect</span></h2>
+		<div class="contact-links">
+			{#if profile?.github_url}
+				<a href={profile.github_url} target="_blank" rel="noreferrer">GitHub</a>
+			{/if}
+			{#if profile?.linkedin_url}
+				<a href={profile.linkedin_url} target="_blank" rel="noreferrer">LinkedIn</a>
+			{/if}
+			{#if profile?.email}
+				<a href="mailto:{profile.email}">Email</a>
+			{/if}
+			{#if profile?.resume_url}
+				<a href={profile.resume_url} target="_blank" rel="noreferrer">Resume</a>
+			{/if}
 		</div>
-		<div class="footer-links">
-			{#if profile?.github_url}<a href={profile.github_url} target="_blank" rel="noreferrer">□ GitHub</a>{/if}
-			{#if profile?.linkedin_url}<a href={profile.linkedin_url} target="_blank" rel="noreferrer">□ LinkedIn</a>{/if}
-			{#if profile?.resume_url}<a href={profile.resume_url} target="_blank" rel="noreferrer">□ Resume</a>{/if}
+
+		<!-- Footer -->
+		<div class="footer">
+			<span>© 2026 {profile?.name || FALLBACK.name}</span>
+			<span>
+				Built with <a href="#">SvelteKit</a>
+				<span class="dot">·</span>
+				<a href="#">Source on GitHub</a>
+				<span class="dot">·</span>
+				<span class="heart">❤</span>
+			</span>
 		</div>
-		{#if profile?.location}<p class="location">{profile.location}</p>{/if}
-		<p class="end-of-record">END OF RECORD</p>
 	</footer>
-</main>
+</div>
 
 <style>
-	main {
-		max-width: 820px;
-		margin: 0 auto;
+	/* CSS Variables - Inherit from layout */
+	:global(:root) {
+		--bg-primary: #ffffff;
+		--bg-secondary: #f8f6f4;
+		--bg-tertiary: #faf8f6;
+		--bg-hover: #fdf6f0;
+		--text-primary: #1a1d24;
+		--text-secondary: #3d3f47;
+		--text-muted: #6b6f7a;
+		--border-color: #f0edea;
+		--border-hover: #e8e3de;
+		--accent: #d4762a;
+		--accent-light: #fdf6f0;
+		--shadow: rgba(0, 0, 0, 0.06);
+		--shadow-hover: rgba(212, 118, 42, 0.10);
+		--badge-bg: #fdf6f0;
+		--card-bg: #faf8f6;
+		--gradient-start: #d4762a;
+		--gradient-end: #f0a050;
 	}
 
-	section,
-	footer {
-		padding: clamp(3.5rem, 7vw, 5.5rem) 0;
-		border-bottom: 1px solid #4d3a2a;
+	:global([data-theme='dark']) {
+		--bg-primary: #14161a;
+		--bg-secondary: #1a1d24;
+		--bg-tertiary: #24282f;
+		--bg-hover: #2a1f15;
+		--text-primary: #e8e6e3;
+		--text-secondary: #b8b4ae;
+		--text-muted: #8a8680;
+		--border-color: #2a2d35;
+		--border-hover: #3d3f47;
+		--accent: #e68a2e;
+		--accent-light: #2a1f15;
+		--shadow: rgba(0, 0, 0, 0.3);
+		--shadow-hover: rgba(230, 138, 46, 0.15);
+		--badge-bg: #2a1f15;
+		--card-bg: #1a1d24;
+		--gradient-start: #e68a2e;
+		--gradient-end: #f0a050;
 	}
 
-	footer {
-		border-bottom: none;
+	/* Reset styles */
+	:global(html) {
+		scroll-behavior: smooth;
 	}
 
-	h1 {
-		font-size: clamp(2.4rem, 5vw, 3.4rem);
-		letter-spacing: -0.02em;
-		color: #f5d6b0;
-		text-shadow: 0 0 10px #b87a3e33;
-	}
-
-	h2 {
-		font-size: clamp(1.6rem, 3vw, 2rem);
-		margin-bottom: 1.75rem;
-		color: #f5d6b0;
-		letter-spacing: 0.02em;
-	}
-
-	.role {
-		font-size: 1.1rem;
-		color: #e68a2e;
-		margin: 0.4rem 0 1.2rem;
-		letter-spacing: 0.12em;
-	}
-
-	.bio {
-		font-size: 1rem;
-		line-height: 1.75;
-		color: #c7a078;
-		max-width: 58ch;
-		margin: 0 0 2rem;
-		border-left: 3px solid #e68a2e;
-		padding-left: 1rem;
-		background: rgba(18, 22, 28, 0.5);
-		border-radius: 0 4px 4px 0;
-		padding: 0.5rem 1rem;
-	}
-
-	.cta-row {
+	:global(body) {
+		margin: 0;
+		padding: 2rem 1rem;
+		background: var(--bg-secondary);
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
+		color: var(--text-primary);
+		line-height: 1.6;
+		transition: background 0.3s ease, color 0.3s ease;
+		min-height: 100vh;
 		display: flex;
+		justify-content: center;
+		align-items: flex-start;
+	}
+
+	:global(a) {
+		color: var(--accent);
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+
+	:global(a:hover) {
+		color: var(--accent);
+	}
+
+	:global(::selection) {
+		background: var(--accent);
+		color: #ffffff;
+	}
+
+	/* Container */
+	.container {
+		max-width: 960px;
+		width: 100%;
+		margin: 0 auto;
+		background: var(--bg-primary);
+		border-radius: 16px;
+		box-shadow: 0 4px 48px var(--shadow), 0 1px 4px var(--shadow);
+		padding: 2.5rem 3rem;
+		transition: background 0.3s ease, box-shadow 0.3s ease;
+		position: relative;
+		overflow: hidden;
+	}
+
+	/* Decorative accent line */
+	.container::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end), var(--gradient-start));
+		background-size: 200% 100%;
+		animation: shimmer 3s ease-in-out infinite;
+	}
+
+	@keyframes shimmer {
+		0%, 100% { background-position: 0% 50%; }
+		50% { background-position: 100% 50%; }
+	}
+
+	/* Theme Toggle */
+	.theme-toggle {
+		position: fixed;
+		top: 1.5rem;
+		right: 1.5rem;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-color);
+		border-radius: 50%;
+		width: 44px;
+		height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		color: var(--text-primary);
+		font-size: 1.2rem;
+		box-shadow: 0 2px 12px var(--shadow);
+		z-index: 100;
+		user-select: none;
+	}
+
+	.theme-toggle:hover {
+		border-color: var(--accent);
+		transform: scale(1.05) rotate(15deg);
+	}
+
+	.theme-toggle:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	/* Header */
+	.header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding-bottom: 1.5rem;
+		margin-bottom: 2.5rem;
+		border-bottom: 1px solid var(--border-color);
+		transition: border-color 0.3s ease;
+	}
+
+	.logo {
+		font-weight: 600;
+		font-size: 1.1rem;
+		color: var(--text-primary);
+		letter-spacing: -0.01em;
+		transition: color 0.3s ease;
+	}
+
+	.logo .sparkle {
+		color: var(--accent);
+		animation: twinkle 2s ease-in-out infinite;
+		display: inline-block;
+	}
+
+	@keyframes twinkle {
+		0%, 100% { opacity: 1; transform: scale(1); }
+		50% { opacity: 0.6; transform: scale(1.2); }
+	}
+
+	.logo span {
+		color: var(--accent);
+	}
+
+	.nav {
+		display: flex;
+		gap: 2rem;
+		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.9rem;
+	}
+
+	.nav a {
+		color: var(--text-muted);
+		text-decoration: none;
+		font-size: 0.9rem;
+		font-weight: 500;
+		transition: color 0.2s;
+		padding: 0.25rem 0;
+		position: relative;
+	}
+
+	.nav a:hover {
+		color: var(--text-primary);
+	}
+
+	.nav a.active {
+		color: var(--accent);
+	}
+
+	.nav a.active::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--accent);
+		border-radius: 2px;
+	}
+
+	.nav .admin {
+		color: var(--text-muted);
+		font-size: 0.8rem;
+		padding: 0.3rem 1rem;
+		border: 1px solid var(--border-color);
+		border-radius: 20px;
+		transition: all 0.2s;
+	}
+
+	.nav .admin:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	/* Hero */
+	.hero {
+		margin-bottom: 3.5rem;
+		position: relative;
+	}
+
+	.hero::after {
+		content: '✦ ✦ ✦';
+		position: absolute;
+		bottom: -1.5rem;
+		right: 0;
+		font-size: 0.6rem;
+		color: var(--accent);
+		opacity: 0.3;
+		letter-spacing: 0.3em;
+	}
+
+	.hero-badge {
+		display: inline-block;
+		background: linear-gradient(135deg, var(--badge-bg), var(--accent-light));
+		color: var(--accent);
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		padding: 0.25rem 0.8rem;
+		border-radius: 20px;
+		margin-bottom: 1rem;
+		animation: pulse-glow 2s ease-in-out infinite;
+		transition: background 0.3s ease;
+	}
+
+	@keyframes pulse-glow {
+		0%, 100% { box-shadow: 0 0 0 0 rgba(212, 118, 42, 0.1); }
+		50% { box-shadow: 0 0 0 8px rgba(212, 118, 42, 0); }
+	}
+
+	.hero h1 {
+		font-size: 2.8rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		margin-bottom: 0.25rem;
+		color: var(--text-primary);
+		transition: color 0.3s ease;
+	}
+
+	.hero h1 .highlight {
+		background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		position: relative;
+	}
+
+	.hero h1 .highlight::after {
+		content: '✦';
+		font-size: 1.8rem;
+		position: absolute;
+		top: -0.8rem;
+		right: -2.2rem;
+		color: var(--accent);
+		-webkit-text-fill-color: var(--accent);
+		animation: spin 8s linear infinite;
+	}
+
+	@keyframes spin {
+		0% { transform: rotate(0deg); }
+		100% { transform: rotate(360deg); }
+	}
+
+	.hero .role {
+		font-size: 1.2rem;
+		color: var(--text-muted);
+		margin-bottom: 1rem;
+		font-weight: 400;
+		transition: color 0.3s ease;
+	}
+
+	.hero .role .accent {
+		color: var(--accent);
+		font-weight: 500;
+		position: relative;
+	}
+
+	.hero .role .accent::before {
+		content: '⚡';
+		margin-right: 4px;
+	}
+
+	.hero .bio {
+		font-size: 1.05rem;
+		color: var(--text-muted);
+		max-width: 550px;
+		margin-bottom: 1.75rem;
+		line-height: 1.7;
+		border-left: 3px solid var(--accent);
+		padding-left: 1rem;
+		transition: color 0.3s ease, border-color 0.3s ease;
+	}
+
+	.actions {
+		display: flex;
+		gap: 0.8rem;
 		margin-bottom: 2rem;
+		flex-wrap: wrap;
 	}
 
 	.btn {
-		background: #e68a2e;
-		color: #0b0d0f !important;
-		padding: 0.6rem 1.5rem;
-		border-radius: 999px;
-		font-weight: 600;
-		font-size: 0.85rem;
-		letter-spacing: 0.04em;
-		border: 1px solid #e68a2e;
-		transition: all 0.15s;
-	}
-	.btn:hover {
-		opacity: 0.9;
+		padding: 0.6rem 1.8rem;
+		border-radius: 8px;
+		font-size: 0.9rem;
+		font-weight: 500;
+		border: none;
+		cursor: pointer;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 		text-decoration: none;
-		box-shadow: 0 0 16px #e68a2e66;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.btn-primary {
+		background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+		color: #ffffff;
+		box-shadow: 0 2px 12px rgba(212, 118, 42, 0.25);
+	}
+
+	.btn-primary:hover {
+		transform: translateY(-2px) scale(1.02);
+		box-shadow: 0 6px 24px rgba(212, 118, 42, 0.35);
+	}
+
+	.btn-primary::before {
+		content: '↓';
+		transition: transform 0.3s;
+	}
+
+	.btn-primary:hover::before {
+		transform: translateY(2px);
 	}
 
 	.btn-outline {
 		background: transparent;
-		color: #f5d6b0 !important;
-		border: 1px solid #4d3a2a;
+		color: var(--text-primary);
+		border: 1px solid var(--border-color);
+		transition: all 0.3s;
 	}
+
 	.btn-outline:hover {
-		border-color: #e68a2e;
-		color: #e68a2e !important;
-		box-shadow: none;
+		border-color: var(--accent);
+		color: var(--accent);
+		background: var(--bg-hover);
+		transform: translateY(-2px);
+	}
+
+	.btn-outline::before {
+		content: '✉';
+		transition: transform 0.3s;
+	}
+
+	.btn-outline:hover::before {
+		transform: rotate(-10deg) scale(1.1);
 	}
 
 	.skills {
-		list-style: none;
 		display: flex;
-		flex-wrap: wrap;
 		gap: 0.6rem;
-		padding: 0;
-		margin: 0;
-	}
-	.skills li {
-		font-size: 0.78rem;
-		font-weight: 500;
-		color: #e68a2e;
-		background: #2a1f15;
-		border: 1px solid #4d3a2a;
-		padding: 0.3rem 0.8rem;
-		border-radius: 999px;
+		flex-wrap: wrap;
 	}
 
+	.skill {
+		background: var(--bg-tertiary);
+		color: var(--text-secondary);
+		font-size: 0.8rem;
+		padding: 0.3rem 0.9rem;
+		border-radius: 6px;
+		font-weight: 500;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		cursor: default;
+	}
+
+	.skill::before {
+		content: '#';
+		color: var(--accent);
+		opacity: 0.5;
+		margin-right: 2px;
+	}
+
+	.skill:hover {
+		background: var(--badge-bg);
+		color: var(--accent);
+		transform: translateY(-2px) scale(1.05);
+		box-shadow: 0 4px 12px rgba(212, 118, 42, 0.15);
+	}
+
+	/* Section */
+	.section {
+		margin: 3.5rem 0;
+		position: relative;
+	}
+
+	.section-title {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: var(--text-primary);
+		margin-bottom: 1.5rem;
+		letter-spacing: -0.01em;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		transition: color 0.3s ease;
+	}
+
+	.section-title::before {
+		content: '✦';
+		color: var(--accent);
+		font-size: 1.2rem;
+		opacity: 0.8;
+	}
+
+	.section-title .accent {
+		color: var(--accent);
+	}
+
+	.divider {
+		border: none;
+		border-top: 1px solid var(--border-color);
+		margin: 2.5rem 0;
+		position: relative;
+		transition: border-color 0.3s ease;
+	}
+
+	.divider::after {
+		content: '✦ ✦ ✦';
+		position: absolute;
+		top: -0.6rem;
+		left: 50%;
+		transform: translateX(-50%);
+		background: var(--bg-primary);
+		padding: 0 1rem;
+		color: var(--accent);
+		font-size: 0.6rem;
+		letter-spacing: 0.5em;
+		opacity: 0.3;
+		transition: background 0.3s ease;
+	}
+
+	/* Projects Grid */
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: 1.5rem;
 	}
 
-	.card {
-		background: #0f1319;
-		border: 1px solid #4d3a2a;
+	.project {
+		background: var(--card-bg);
+		border: 1px solid var(--border-color);
 		border-radius: 10px;
-		padding: 1.5rem;
+		overflow: hidden;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 		display: flex;
 		flex-direction: column;
-		gap: 0.6rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-		transition: transform 0.15s ease, box-shadow 0.15s ease;
-	}
-	.card:hover {
-		transform: translateY(-3px);
-		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 1px #e68a2e;
 	}
 
-	.featured-tag {
-		align-self: flex-start;
-		font-size: 0.65rem;
+	.project:hover {
+		border-color: var(--accent);
+		transform: translateY(-6px);
+		box-shadow: 0 12px 32px var(--shadow-hover);
+	}
+
+	.project-image-wrapper {
+		width: 100%;
+		height: 200px;
+		overflow: hidden;
+		background: var(--bg-secondary);
+		flex-shrink: 0;
+	}
+
+	.project-image {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.3s ease;
+	}
+
+	.project:hover .project-image {
+		transform: scale(1.05);
+	}
+
+	.project-content {
+		padding: 1.25rem 1.5rem 1.5rem;
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+	}
+
+	.project .tag {
+		display: inline-block;
+		font-size: 0.6rem;
 		font-weight: 600;
-		color: #e68a2e;
-		background: #1f160e;
-		border: 1px solid #e68a2e;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--accent);
+		background: var(--badge-bg);
 		padding: 0.15rem 0.6rem;
 		border-radius: 4px;
-		letter-spacing: 0.06em;
+		margin-bottom: 0.5rem;
+		align-self: flex-start;
+		transition: background 0.3s ease;
 	}
 
-	.card h3 {
-		font-size: 0.9rem;
-		color: #e68a2e;
-		letter-spacing: 0.04em;
-	}
-	.mission-title {
+	.project h3 {
+		font-size: 1rem;
 		font-weight: 600;
-		font-size: 1.05rem;
-		color: #f5d6b0;
-		margin-top: -0.2rem;
-	}
-	.desc {
-		color: #c7a078;
-		line-height: 1.6;
-		font-size: 0.9rem;
-		margin: 0;
+		color: var(--text-primary);
+		margin-bottom: 0.25rem;
+		transition: color 0.3s ease;
 	}
 
-	.tags {
-		list-style: none;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		padding: 0;
-		margin: 0.3rem 0 0;
-	}
-	.tags li {
-		font-size: 0.7rem;
-		color: #c7a078;
-		background: #0b0d0f;
-		border: 1px solid #4d3a2a;
-		padding: 0.15rem 0.5rem;
-		border-radius: 4px;
+	.project .desc {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+		margin-bottom: 0.75rem;
+		flex: 1;
+		transition: color 0.3s ease;
 	}
 
-	.card-links {
+	.project .stack {
+		font-size: 0.75rem;
+		color: var(--text-muted);
+		font-weight: 500;
+		margin-bottom: 0.75rem;
+		transition: color 0.3s ease;
+	}
+
+	.project .stack .highlight {
+		color: var(--accent);
+		font-weight: 600;
+	}
+
+	.project-links {
 		display: flex;
 		gap: 1.25rem;
-		font-size: 0.8rem;
-		font-weight: 500;
 		margin-top: 0.25rem;
 	}
 
-	.timeline {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 2.25rem;
-	}
-	.timeline li {
-		display: grid;
-		grid-template-columns: 140px 1fr;
-		gap: 1.5rem;
-		border-left: 2px solid #4d3a2a;
-		padding-left: 1.5rem;
-	}
-	.tl-date {
+	.project-link {
 		font-size: 0.8rem;
 		font-weight: 500;
-		color: #e68a2e;
-		padding-top: 0.2rem;
+		color: var(--text-muted);
+		text-decoration: none;
+		transition: all 0.3s;
+		position: relative;
 	}
-	.tl-content h3 {
-		font-size: 1rem;
-		color: #f5d6b0;
+
+	.project-link:hover {
+		color: var(--accent);
 	}
-	.company {
+
+	.project-link::after {
+		content: '';
+		position: absolute;
+		bottom: -2px;
+		left: 0;
+		right: 0;
+		height: 1.5px;
+		background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+		transform: scaleX(0);
+		transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.project-link:hover::after {
+		transform: scaleX(1);
+	}
+
+	.project-link::before {
+		content: '→ ';
+		transition: transform 0.3s;
+	}
+
+	.project-link:hover::before {
+		transform: translateX(4px);
+	}
+
+	/* If no image, add a subtle placeholder */
+	.project:not(:has(.project-image-wrapper)) .project-content {
+		padding-top: 1.5rem;
+	}
+
+	/* Timeline */
+	.timeline {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.timeline-item {
+		display: flex;
+		gap: 2rem;
+		padding: 0.5rem 0;
+		align-items: baseline;
+		border-left: 2px solid var(--border-color);
+		padding-left: 1.5rem;
+		transition: all 0.3s;
+		position: relative;
+	}
+
+	.timeline-item:hover {
+		border-left-color: var(--accent);
+	}
+
+	.timeline-item::before {
+		content: '──';
+		color: var(--accent);
+		position: absolute;
+		left: -0.8rem;
+		opacity: 0;
+		transition: opacity 0.3s;
+	}
+
+	.timeline-item:hover::before {
+		opacity: 1;
+	}
+
+	.timeline-year {
+		font-weight: 600;
+		color: var(--accent);
+		min-width: 70px;
+		font-size: 0.9rem;
+	}
+
+	.timeline-content {
+		color: var(--text-secondary);
+		font-size: 0.95rem;
+		transition: color 0.3s ease;
+	}
+
+	.timeline-content .company {
+		color: var(--text-muted);
+		font-weight: 400;
+		transition: color 0.3s ease;
+	}
+
+	.timeline-content .company::before {
+		content: '· ';
+	}
+
+	/* Contact */
+	.contact-links {
+		display: flex;
+		gap: 2rem;
+		flex-wrap: wrap;
+		margin-bottom: 2rem;
+	}
+
+	.contact-links a {
+		color: var(--text-secondary);
+		text-decoration: none;
+		font-size: 0.95rem;
 		font-weight: 500;
-		color: #e68a2e;
-		margin: 0.2rem 0 0.6rem;
+		padding: 0.4rem 0;
+		border-bottom: 2px solid transparent;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		position: relative;
+	}
+
+	.contact-links a::before {
+		content: '→ ';
+		color: var(--accent);
+		opacity: 0;
+		transform: translateX(-8px);
+		transition: all 0.3s;
+	}
+
+	.contact-links a:hover {
+		color: var(--accent);
+		border-bottom-color: var(--accent);
+	}
+
+	.contact-links a:hover::before {
+		opacity: 1;
+		transform: translateX(0);
 	}
 
 	.empty {
-		color: #c7a078;
+		color: var(--text-muted);
 		font-size: 0.95rem;
 	}
-	.empty a {
-		color: #e68a2e;
-	}
 
-	.footer-links {
+	/* Footer */
+	.footer {
+		margin-top: 3.5rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--border-color);
 		display: flex;
-		flex-wrap: wrap;
-		gap: 1.5rem;
-		font-weight: 500;
-		margin: 1.5rem 0 0.75rem;
-	}
-	.footer-links a {
-		color: #f5d6b0;
+		justify-content: space-between;
+		align-items: center;
 		font-size: 0.85rem;
-		letter-spacing: 0.04em;
-	}
-	.footer-links a:hover {
-		color: #e68a2e;
-	}
-
-	.location {
-		color: #c7a078;
-		font-size: 0.85rem;
-		margin: 0;
+		color: var(--text-muted);
+		transition: border-color 0.3s ease, color 0.3s ease;
+		position: relative;
 	}
 
-	.end-of-record {
-		text-align: right;
-		font-size: 0.65rem;
-		color: #c7a078;
-		letter-spacing: 0.2em;
-		margin-top: 2rem;
-		border-top: 1px solid #4d3a2a;
-		padding-top: 1.2rem;
-		opacity: 0.6;
+	.footer::before {
+		content: '✦ ✦ ✦';
+		position: absolute;
+		top: -0.7rem;
+		left: 50%;
+		transform: translateX(-50%);
+		background: var(--bg-primary);
+		padding: 0 1rem;
+		color: var(--accent);
+		font-size: 0.5rem;
+		letter-spacing: 0.5em;
+		opacity: 0.2;
+		transition: background 0.3s ease;
 	}
 
-	@media (max-width: 600px) {
-		.timeline li {
+	.footer a {
+		color: var(--text-muted);
+		text-decoration: none;
+		transition: color 0.2s;
+		position: relative;
+	}
+
+	.footer a:hover {
+		color: var(--accent);
+	}
+
+	.footer .dot {
+		color: var(--accent);
+		margin: 0 0.5rem;
+	}
+
+	.footer .heart {
+		color: var(--accent);
+		animation: heartbeat 1.5s ease-in-out infinite;
+		display: inline-block;
+	}
+
+	@keyframes heartbeat {
+		0%, 100% { transform: scale(1); }
+		50% { transform: scale(1.2); }
+	}
+
+	/* Responsive Design */
+	@media (max-width: 768px) {
+		.container {
+			padding: 1.5rem;
+		}
+
+		.header {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.75rem;
+		}
+
+		.nav {
+			gap: 1.25rem;
+		}
+
+		.hero h1 {
+			font-size: 2.2rem;
+		}
+
+		.hero h1 .highlight::after {
+			display: none;
+		}
+
+		.grid {
 			grid-template-columns: 1fr;
-			gap: 0.3rem;
-			border-left: none;
-			padding-left: 0;
+		}
+
+		.timeline-item {
+			flex-direction: column;
+			gap: 0.1rem;
+			padding-left: 1rem;
+		}
+
+		.contact-links {
+			gap: 1.25rem;
+		}
+
+		.footer {
+			flex-direction: column;
+			gap: 0.5rem;
+			text-align: center;
+		}
+
+		.hero::after {
+			display: none;
+		}
+
+		.theme-toggle {
+			top: 1rem;
+			right: 1rem;
+			width: 38px;
+			height: 38px;
+			font-size: 1rem;
+		}
+	}
+
+	@media (max-width: 480px) {
+		:global(body) {
+			padding: 0.5rem;
+		}
+
+		.container {
+			padding: 1rem;
+			border-radius: 12px;
+		}
+
+		.hero h1 {
+			font-size: 1.8rem;
+		}
+
+		.actions {
+			flex-direction: column;
+			width: 100%;
+		}
+
+		.btn {
+			text-align: center;
+			width: 100%;
+			justify-content: center;
+		}
+
+		.theme-toggle {
+			top: 0.75rem;
+			right: 0.75rem;
+			width: 34px;
+			height: 34px;
+			font-size: 0.9rem;
+		}
+	}
+
+	/* Reduce motion preferences */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
 		}
 	}
 </style>
