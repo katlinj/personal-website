@@ -2,19 +2,16 @@
 
 <style>
 	:global(:root) {
-		--bg: #0d0f14;
-		--panel: #151822;
-		--panel-border: #262b38;
-		--text: #e7e9ee;
-		--muted: #7a8299;
-		--accent: #6c8eef;
-		--accent-2: #e0a458;
-		--mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-		--sans:
-			'Inter',
-			system-ui,
-			-apple-system,
-			sans-serif;
+		--bg: #f6f7f9;
+		--surface: #ffffff;
+		--border: #e4e7ec;
+		--text: #1b1e27;
+		--muted: #667085;
+		--accent: #4f46e5;
+		--accent-soft: #eef0ff;
+		--warm: #f2994a;
+		--display: 'Space Grotesk', system-ui, sans-serif;
+		--sans: 'Inter', system-ui, -apple-system, sans-serif;
 	}
 
 	:global(*) {
@@ -35,7 +32,7 @@
 	}
 
 	:global(h1, h2, h3) {
-		font-family: var(--mono);
+		font-family: var(--display);
 		font-weight: 600;
 		margin: 0;
 	}
@@ -45,18 +42,14 @@
 		text-decoration: none;
 	}
 
-	:global(a:hover) {
-		text-decoration: underline;
-	}
-
 	:global(button) {
-		font-family: var(--mono);
+		font-family: var(--sans);
 		cursor: pointer;
 	}
 
 	:global(::selection) {
 		background: var(--accent);
-		color: var(--bg);
+		color: #fff;
 	}
 
 	:global(:focus-visible) {
@@ -64,12 +57,26 @@
 		outline-offset: 2px;
 	}
 
-	:global(.section-label) {
-		font-family: var(--mono);
-		color: var(--muted);
-		font-size: 0.95rem;
-		letter-spacing: 0.02em;
-		margin: 0 0 1.5rem;
+	:global(.eyebrow) {
+		font-family: var(--sans);
+		font-weight: 600;
+		font-size: 0.8rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--accent);
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 0.75rem;
+	}
+
+	:global(.eyebrow::before) {
+		content: '';
+		width: 18px;
+		height: 3px;
+		border-radius: 2px;
+		background: var(--accent);
+		display: inline-block;
 	}
 
 	@media (prefers-reduced-motion: reduce) {

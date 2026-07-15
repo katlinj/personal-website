@@ -7,59 +7,42 @@
 	$: projects = data.projects ?? [];
 	$: experience = data.experience ?? [];
 
-	let typedText = '';
-	let showCursor = true;
+	const sections = [
+		{ id: 'about', label: 'About' },
+		{ id: 'work', label: 'Work' },
+		{ id: 'experience', label: 'Experience' },
+		{ id: 'contact', label: 'Contact' }
+	];
 
-	function buildTemplate(p) {
-		return `/**\n * name   : ${p.name || 'Your Name'}\n * role   : ${p.role || 'Software Developer'}\n * status : available for opportunities\n */`;
-	}
+	let activeSection = 'about';
 
 	onMount(() => {
-		const template = buildTemplate(profile);
-		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) activeSection = entry.target.id;
+				});
+			},
+			{ rootMargin: '-40% 0px -50% 0px' }
+		);
 
-		if (reduceMotion) {
-			typedText = template;
-			return;
-		}
+		sections.forEach(({ id }) => {
+			const el = document.getElementById(id);
+			if (el) observer.observe(el);
+		});
 
-		let i = 0;
-		const interval = setInterval(() => {
-			i += 1;
-			typedText = template.slice(0, i);
-			if (i >= template.length) clearInterval(interval);
-		}, 14);
-
-		const blink = setInterval(() => (showCursor = !showCursor), 550);
-
-		return () => {
-			clearInterval(interval);
-			clearInterval(blink);
-		};
+		return () => observer.disconnect();
 	});
-
-	function slugify(str) {
-		return (str || 'project')
-			.toLowerCase()
-			.trim()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/(^-|-$)/g, '');
-	}
-
-	function shortHash(id) {
-		return (id || '0000000').replace(/-/g, '').slice(0, 7);
-	}
 
 	function formatDate(d) {
 		if (!d) return '';
-		const date = new Date(d);
-		return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+		return new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 	}
 
 	function formatRange(start, end, isCurrent) {
 		const from = formatDate(start);
-		const to = isCurrent ? 'present' : formatDate(end) || 'present';
-		return [from, to].filter(Boolean).join(' — ');
+		const to = isCurrent ? 'Present' : formatDate(end) || 'Present';
+		return [from, to].filter(Boolean).join(' – ');
 	}
 </script>
 
@@ -68,20 +51,29 @@
 	{#if profile.bio}<meta name="description" content={profile.bio} />{/if}
 </svelte:head>
 
-<nav class="tabs">
-	<span class="tab-brand">{profile.name || 'portfolio'}</span>
-	<div class="tab-links">
-		<a href="#about" class="tab">about.js</a>
-		<a href="#projects" class="tab">projects.js</a>
-		<a href="#experience" class="tab">experience.js</a>
-		<a href="#contact" class="tab">contact.js</a>
+<nav class="nav">
+	<a href="#about" class="brand">{profile.name || 'Portfolio'}</a>
+	<div class="nav-links">
+		{#each sections as s}
+			<a href="#{s.id}" class:active={activeSection === s.id}>{s.label}</a>
+		{/each}
+		<a href="/admin" class="admin-btn">Admin</a>
 	</div>
 </nav>
 
 <main>
 	<section id="about" class="hero">
-		<pre class="typed">{typedText}<span class="cursor" class:hidden={!showCursor}>▍</span></pre>
+		<p class="eyebrow">Welcome</p>
+		<h1>{profile.name || 'Your Name'}</h1>
+		<p class="role">{profile.role || 'Software Developer'}</p>
 		{#if profile.bio}<p class="bio">{profile.bio}</p>{/if}
+
+		<div class="cta-row">
+			<a href="#work" class="btn">View my work</a>
+			{#if profile.email}<a href="mailto:{profile.email}" class="btn btn-outline">Get in touch</a
+				>{/if}
+		</div>
+
 		{#if profile.skills?.length}
 			<ul class="skills">
 				{#each profile.skills as skill}
@@ -89,92 +81,89 @@
 				{/each}
 			</ul>
 		{/if}
-		<div class="hero-links">
-			{#if profile.email}<a href="mailto:{profile.email}">{profile.email}</a>{/if}
-			{#if profile.github_url}<a href={profile.github_url} target="_blank" rel="noreferrer">github ↗</a
-				>{/if}
-			{#if profile.linkedin_url}<a href={profile.linkedin_url} target="_blank" rel="noreferrer"
-					>linkedin ↗</a
-				>{/if}
-			{#if profile.resume_url}<a href={profile.resume_url} target="_blank" rel="noreferrer"
-					>resume ↗</a
-				>{/if}
-		</div>
-		{#if profile.location}<p class="location">// based in {profile.location}</p>{/if}
 	</section>
 
-	<section id="projects">
-		<h2 class="section-label">// projects</h2>
+	<section id="work">
+		<p class="eyebrow">Work</p>
+		<h2>Projects</h2>
 		{#if projects.length}
 			<div class="grid">
 				{#each projects as p (p.id)}
 					<article class="card">
-						<div class="card-head">
-							<span class="dot" />
-							<span class="filename">{slugify(p.title)}.tsx</span>
-							{#if p.featured}<span class="badge">featured</span>{/if}
-						</div>
+						{#if p.featured}<span class="featured-tag">Featured</span>{/if}
 						<h3>{p.title}</h3>
 						{#if p.description}<p class="desc">{p.description}</p>{/if}
 						{#if p.tech_stack?.length}
-							<p class="import">import &lbrace; {p.tech_stack.join(', ')} &rbrace;</p>
+							<ul class="tags">
+								{#each p.tech_stack as t}<li>{t}</li>{/each}
+							</ul>
 						{/if}
 						<div class="card-links">
 							{#if p.project_url}<a href={p.project_url} target="_blank" rel="noreferrer"
-									>live ↗</a
+									>View live →</a
 								>{/if}
 							{#if p.github_url}<a href={p.github_url} target="_blank" rel="noreferrer"
-									>source ↗</a
+									>Source →</a
 								>{/if}
 						</div>
 					</article>
 				{/each}
 			</div>
 		{:else}
-			<p class="empty">// no projects yet — add some from <a href="/admin">/admin</a></p>
+			<p class="empty">No projects yet — add some from <a href="/admin">/admin</a>.</p>
 		{/if}
 	</section>
 
 	<section id="experience">
-		<h2 class="section-label">// experience</h2>
+		<p class="eyebrow">Career</p>
+		<h2>Experience</h2>
 		{#if experience.length}
-			<ol class="log">
+			<ul class="timeline">
 				{#each experience as e (e.id)}
 					<li>
-						<span class="hash">{shortHash(e.id)}</span>
-						<div class="entry">
-							<p class="commit-msg">{e.role} @ {e.company}</p>
-							<p class="meta">{formatRange(e.start_date, e.end_date, e.is_current)}</p>
-							{#if e.description}<p class="desc">+ {e.description}</p>{/if}
+						<div class="tl-date">{formatRange(e.start_date, e.end_date, e.is_current)}</div>
+						<div class="tl-content">
+							<h3>{e.role}</h3>
+							<p class="company">{e.company}</p>
+							{#if e.description}<p class="desc">{e.description}</p>{/if}
 							{#if e.tech_stack?.length}
-								<p class="import">import &lbrace; {e.tech_stack.join(', ')} &rbrace;</p>
+								<ul class="tags">
+									{#each e.tech_stack as t}<li>{t}</li>{/each}
+								</ul>
 							{/if}
 						</div>
 					</li>
 				{/each}
-			</ol>
+			</ul>
 		{:else}
-			<p class="empty">// no experience listed yet — add some from <a href="/admin">/admin</a></p>
+			<p class="empty">No experience listed yet — add some from <a href="/admin">/admin</a>.</p>
 		{/if}
 	</section>
 
 	<footer id="contact">
-		<h2 class="section-label">// contact</h2>
-		{#if profile.email}<p><a href="mailto:{profile.email}">{profile.email}</a></p>{/if}
+		<p class="eyebrow">Contact</p>
+		<h2>Let's work together</h2>
+		{#if profile.bio}<p class="desc">Feel free to reach out — I'd love to hear from you.</p>{/if}
+		<div class="cta-row">
+			{#if profile.email}<a href="mailto:{profile.email}" class="btn">{profile.email}</a>{/if}
+		</div>
 		<div class="footer-links">
 			{#if profile.github_url}<a href={profile.github_url} target="_blank" rel="noreferrer"
-					>github</a
+					>GitHub</a
 				>{/if}
 			{#if profile.linkedin_url}<a href={profile.linkedin_url} target="_blank" rel="noreferrer"
-					>linkedin</a
+					>LinkedIn</a
+				>{/if}
+			{#if profile.resume_url}<a href={profile.resume_url} target="_blank" rel="noreferrer"
+					>Resume</a
 				>{/if}
 		</div>
-		<p class="admin-link"><a href="/admin">$ admin</a></p>
+		{#if profile.location}<p class="location">{profile.location}</p>{/if}
 	</footer>
 </main>
 
 <style>
-	.tabs {
+	.nav {
 		position: sticky;
 		top: 0;
 		z-index: 10;
@@ -182,260 +171,275 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		padding: 1rem clamp(1.25rem, 4vw, 3rem);
-		background: rgba(13, 15, 20, 0.85);
+		padding: 1.1rem clamp(1.25rem, 4vw, 3rem);
+		background: rgba(246, 247, 249, 0.85);
 		backdrop-filter: blur(8px);
-		border-bottom: 1px solid var(--panel-border);
+		border-bottom: 1px solid var(--border);
 		flex-wrap: wrap;
 	}
 
-	.tab-brand {
-		font-family: var(--mono);
+	.brand {
+		font-family: var(--display);
 		font-weight: 600;
 		color: var(--text);
+		font-size: 1.05rem;
 	}
 
-	.tab-links {
+	.brand:hover {
+		text-decoration: none;
+	}
+
+	.nav-links {
 		display: flex;
-		gap: 1.25rem;
+		align-items: center;
+		gap: 1.75rem;
 		flex-wrap: wrap;
 	}
 
-	.tab {
-		font-family: var(--mono);
-		font-size: 0.9rem;
+	.nav-links a {
 		color: var(--muted);
-		padding-bottom: 0.25rem;
-		border-bottom: 2px solid transparent;
+		font-size: 0.92rem;
+		font-weight: 500;
 	}
 
-	.tab:hover {
-		color: var(--accent);
+	.nav-links a:hover {
+		color: var(--text);
 		text-decoration: none;
-		border-bottom-color: var(--accent);
+	}
+
+	.nav-links a.active {
+		color: var(--accent);
+	}
+
+	.admin-btn {
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		padding: 0.35rem 0.9rem;
+		color: var(--muted) !important;
+	}
+
+	.admin-btn:hover {
+		border-color: var(--accent);
+		color: var(--accent) !important;
 	}
 
 	main {
-		max-width: 860px;
+		max-width: 800px;
 		margin: 0 auto;
 		padding: 0 clamp(1.25rem, 4vw, 3rem);
 	}
 
 	section,
 	footer {
-		padding: clamp(3rem, 6vw, 5rem) 0;
-		border-bottom: 1px solid var(--panel-border);
+		padding: clamp(3.5rem, 7vw, 5.5rem) 0;
+		border-bottom: 1px solid var(--border);
 	}
 
 	footer {
 		border-bottom: none;
+		text-align: left;
 	}
 
-	.hero {
-		padding-top: clamp(3.5rem, 8vw, 6rem);
+	h1 {
+		font-size: clamp(2.2rem, 5vw, 3.2rem);
+		letter-spacing: -0.02em;
 	}
 
-	.typed {
-		font-family: var(--mono);
-		font-size: clamp(0.95rem, 2vw, 1.15rem);
-		line-height: 1.6;
-		color: var(--accent-2);
-		white-space: pre-wrap;
-		margin: 0 0 1.75rem;
-		min-height: 6.5em;
+	h2 {
+		font-size: clamp(1.5rem, 3vw, 1.9rem);
+		margin-bottom: 1.75rem;
 	}
 
-	.cursor {
+	.role {
+		font-family: var(--display);
+		font-size: 1.15rem;
 		color: var(--accent);
-	}
-
-	.cursor.hidden {
-		opacity: 0;
+		margin: 0.5rem 0 1.25rem;
 	}
 
 	.bio {
-		font-size: 1.1rem;
-		line-height: 1.7;
-		color: var(--text);
-		max-width: 60ch;
-		margin: 0 0 1.5rem;
+		font-size: 1.05rem;
+		line-height: 1.75;
+		color: var(--muted);
+		max-width: 58ch;
+		margin: 0 0 2rem;
+	}
+
+	.cta-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.9rem;
+		margin-bottom: 2rem;
+	}
+
+	.btn {
+		background: var(--accent);
+		color: #fff !important;
+		padding: 0.7rem 1.4rem;
+		border-radius: 999px;
+		font-weight: 600;
+		font-size: 0.95rem;
+	}
+
+	.btn:hover {
+		text-decoration: none;
+		opacity: 0.9;
+	}
+
+	.btn-outline {
+		background: transparent;
+		color: var(--text) !important;
+		border: 1px solid var(--border);
+	}
+
+	.btn-outline:hover {
+		border-color: var(--accent);
+		color: var(--accent) !important;
 	}
 
 	.skills {
 		list-style: none;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.6rem;
 		padding: 0;
-		margin: 0 0 1.75rem;
+		margin: 0;
 	}
 
 	.skills li {
-		font-family: var(--mono);
-		font-size: 0.8rem;
-		color: var(--accent);
-		border: 1px solid var(--panel-border);
-		background: var(--panel);
-		padding: 0.3rem 0.65rem;
-		border-radius: 4px;
-	}
-
-	.hero-links {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1.25rem;
-		font-family: var(--mono);
-		font-size: 0.9rem;
-	}
-
-	.location {
-		font-family: var(--mono);
-		color: var(--muted);
 		font-size: 0.85rem;
-		margin-top: 1.5rem;
+		font-weight: 500;
+		color: var(--accent);
+		background: var(--accent-soft);
+		padding: 0.35rem 0.8rem;
+		border-radius: 999px;
 	}
 
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 		gap: 1.25rem;
 	}
 
 	.card {
-		background: var(--panel);
-		border: 1px solid var(--panel-border);
-		border-radius: 8px;
-		padding: 1.25rem;
+		position: relative;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 14px;
+		padding: 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.6rem;
-		transition: transform 0.15s ease, border-color 0.15s ease;
+		gap: 0.7rem;
+		box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+		transition: transform 0.15s ease, box-shadow 0.15s ease;
 	}
 
 	.card:hover {
-		transform: translateY(-2px);
-		border-color: var(--accent);
+		transform: translateY(-3px);
+		box-shadow: 0 10px 24px rgba(16, 24, 40, 0.08);
 	}
 
-	.card-head {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-family: var(--mono);
-		font-size: 0.78rem;
-		color: var(--muted);
-	}
-
-	.dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: var(--accent-2);
-		flex-shrink: 0;
-	}
-
-	.filename {
-		flex: 1;
-	}
-
-	.badge {
-		font-size: 0.68rem;
-		color: var(--accent);
-		border: 1px solid var(--accent);
+	.featured-tag {
+		align-self: flex-start;
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: var(--warm);
+		background: #fdf1e6;
+		padding: 0.2rem 0.6rem;
 		border-radius: 999px;
-		padding: 0.1rem 0.5rem;
 	}
 
 	.card h3 {
-		font-size: 1.05rem;
+		font-size: 1.1rem;
 	}
 
 	.desc {
-		color: var(--text);
-		line-height: 1.55;
-		font-size: 0.95rem;
+		color: var(--muted);
+		line-height: 1.6;
+		font-size: 0.96rem;
 		margin: 0;
 	}
 
-	.import {
-		font-family: var(--mono);
-		font-size: 0.8rem;
+	.tags {
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		padding: 0;
+		margin: 0.25rem 0 0;
+	}
+
+	.tags li {
+		font-size: 0.78rem;
 		color: var(--muted);
-		margin: 0;
+		background: var(--bg);
+		border: 1px solid var(--border);
+		padding: 0.2rem 0.55rem;
+		border-radius: 6px;
 	}
 
 	.card-links {
 		display: flex;
-		gap: 1rem;
-		font-family: var(--mono);
-		font-size: 0.85rem;
+		gap: 1.25rem;
+		font-size: 0.88rem;
+		font-weight: 500;
 		margin-top: 0.25rem;
 	}
 
-	.log {
+	.timeline {
 		list-style: none;
 		padding: 0;
 		margin: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 1.75rem;
+		gap: 2.25rem;
 	}
 
-	.log li {
-		display: flex;
-		gap: 1rem;
+	.timeline li {
+		display: grid;
+		grid-template-columns: 140px 1fr;
+		gap: 1.5rem;
 	}
 
-	.hash {
-		font-family: var(--mono);
-		font-size: 0.8rem;
-		color: var(--accent);
-		flex-shrink: 0;
-		padding-top: 0.15rem;
-	}
-
-	.entry {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.commit-msg {
-		font-family: var(--mono);
-		font-weight: 600;
-		font-size: 1rem;
-		margin: 0;
-		color: var(--text);
-	}
-
-	.meta {
-		font-family: var(--mono);
-		font-size: 0.8rem;
+	.tl-date {
+		font-size: 0.85rem;
+		font-weight: 500;
 		color: var(--muted);
-		margin: 0;
+		padding-top: 0.2rem;
 	}
 
-	.log .desc {
-		color: var(--accent-2);
+	.tl-content h3 {
+		font-size: 1.05rem;
+	}
+
+	.company {
+		font-weight: 500;
+		color: var(--accent);
+		margin: 0.2rem 0 0.6rem;
 	}
 
 	.empty {
-		font-family: var(--mono);
 		color: var(--muted);
-		font-size: 0.9rem;
+		font-size: 0.95rem;
 	}
 
 	.footer-links {
 		display: flex;
-		gap: 1.25rem;
-		font-family: var(--mono);
-		font-size: 0.9rem;
-		margin: 0.5rem 0 1.5rem;
+		gap: 1.5rem;
+		font-weight: 500;
+		margin: 1.5rem 0 0.75rem;
 	}
 
-	.admin-link a {
+	.location {
 		color: var(--muted);
-		font-family: var(--mono);
-		font-size: 0.8rem;
+		font-size: 0.9rem;
+		margin: 0;
+	}
+
+	@media (max-width: 560px) {
+		.timeline li {
+			grid-template-columns: 1fr;
+			gap: 0.4rem;
+		}
 	}
 </style>

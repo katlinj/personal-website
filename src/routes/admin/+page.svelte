@@ -38,16 +38,16 @@
 {#if !authenticated}
 	<div class="login-wrap">
 		<form method="POST" action="?/login" use:enhance class="panel">
-			<h1>/admin</h1>
-			<p class="hint">// enter password to edit this site</p>
+			<h1>Admin login</h1>
+			<p class="hint">Enter your password to edit this site.</p>
 			<input
 				type="password"
 				name="password"
-				placeholder="password"
+				placeholder="Password"
 				autocomplete="current-password"
 				required
 			/>
-			<button type="submit">$ login</button>
+			<button type="submit">Log in</button>
 			{#if form?.error}<p class="error">{form.error}</p>{/if}
 		</form>
 	</div>
@@ -55,16 +55,16 @@
 	<div class="dashboard">
 		<header>
 			<div>
-				<h1>admin</h1>
-				<a href="/" class="view-link">← view site</a>
+				<h1>Admin</h1>
+				<a href="/" class="view-link">← View site</a>
 			</div>
 			<form method="POST" action="?/logout">
-				<button type="submit" class="ghost">$ logout</button>
+				<button type="submit" class="ghost">Log out</button>
 			</form>
 		</header>
 
 		<section class="panel">
-			<h2 class="section-label">// profile</h2>
+			<h2 class="section-label">Profile</h2>
 			<form method="POST" action="?/saveProfile" use:enhance class="grid-form">
 				<label>name<input name="name" value={profile.name ?? ''} /></label>
 				<label>role<input name="role" value={profile.role ?? ''} /></label>
@@ -82,13 +82,13 @@
 						value={(profile.skills ?? []).join(', ')}
 					/></label
 				>
-				<div class="row-actions"><button type="submit">$ save profile</button></div>
+				<div class="row-actions"><button type="submit">Save profile</button></div>
 			</form>
 			{#if form?.saved === 'profile'}<p class="success">saved.</p>{/if}
 		</section>
 
 		<section class="panel">
-			<h2 class="section-label">// projects</h2>
+			<h2 class="section-label">Projects</h2>
 			<ul class="manage-list">
 				{#each projects as p (p.id)}
 					<li>
@@ -118,7 +118,7 @@
 									><input type="checkbox" name="featured" checked={p.featured} /> featured</label
 								>
 								<div class="row-actions">
-									<button type="submit">$ save</button>
+									<button type="submit">Save</button>
 									<button type="button" class="ghost" on:click={() => (editingProjectId = null)}
 										>cancel</button
 									>
@@ -133,7 +133,7 @@
 									>
 									<form method="POST" action="?/deleteProject" use:enhance>
 										<input type="hidden" name="id" value={p.id} />
-										<button type="submit" class="ghost danger">delete</button>
+										<button type="submit" class="ghost danger">Delete</button>
 									</form>
 								</div>
 							</div>
@@ -157,7 +157,7 @@
 					<label>source url<input name="github_url" /></label>
 					<label class="checkbox"><input type="checkbox" name="featured" /> featured</label>
 					<div class="row-actions">
-						<button type="submit">$ add project</button>
+						<button type="submit">Add project</button>
 						<button type="button" class="ghost" on:click={() => (showNewProject = false)}
 							>cancel</button
 						>
@@ -165,13 +165,13 @@
 				</form>
 			{:else}
 				<button type="button" class="add-btn" on:click={() => (showNewProject = true)}
-					>+ add project</button
+					>+ Add project</button
 				>
 			{/if}
 		</section>
 
 		<section class="panel">
-			<h2 class="section-label">// experience</h2>
+			<h2 class="section-label">Experience</h2>
 			<ul class="manage-list">
 				{#each experience as e (e.id)}
 					<li>
@@ -208,7 +208,7 @@
 									/></label
 								>
 								<div class="row-actions">
-									<button type="submit">$ save</button>
+									<button type="submit">Save</button>
 									<button
 										type="button"
 										class="ghost"
@@ -227,7 +227,7 @@
 									>
 									<form method="POST" action="?/deleteExperience" use:enhance>
 										<input type="hidden" name="id" value={e.id} />
-										<button type="submit" class="ghost danger">delete</button>
+										<button type="submit" class="ghost danger">Delete</button>
 									</form>
 								</div>
 							</div>
@@ -252,7 +252,7 @@
 					<label class="full">description<textarea name="description" rows="3"></textarea></label>
 					<label class="full">tech (comma separated)<input name="tech_stack" /></label>
 					<div class="row-actions">
-						<button type="submit">$ add experience</button>
+						<button type="submit">Add experience</button>
 						<button type="button" class="ghost" on:click={() => (showNewExperience = false)}
 							>cancel</button
 						>
@@ -260,7 +260,7 @@
 				</form>
 			{:else}
 				<button type="button" class="add-btn" on:click={() => (showNewExperience = true)}
-					>+ add experience</button
+					>+ Add experience</button
 				>
 			{/if}
 		</section>
@@ -268,6 +268,11 @@
 {/if}
 
 <style>
+	.section-label {
+		font-size: 1.05rem;
+		margin: 0 0 0.5rem;
+	}
+
 	.login-wrap {
 		min-height: 100vh;
 		display: flex;
@@ -277,10 +282,11 @@
 	}
 
 	.panel {
-		background: var(--panel);
-		border: 1px solid var(--panel-border);
-		border-radius: 8px;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 12px;
 		padding: 1.75rem;
+		box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
 	}
 
 	.login-wrap form {
@@ -292,7 +298,6 @@
 	}
 
 	.hint {
-		font-family: var(--mono);
 		color: var(--muted);
 		font-size: 0.85rem;
 		margin: 0 0 0.5rem;
@@ -301,8 +306,8 @@
 	input,
 	textarea {
 		width: 100%;
-		background: #0d0f14;
-		border: 1px solid var(--panel-border);
+		background: var(--bg);
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		color: var(--text);
 		font-family: var(--sans);
@@ -317,7 +322,7 @@
 
 	button {
 		background: var(--accent);
-		color: #0d0f14;
+		color: #fff;
 		border: none;
 		border-radius: 6px;
 		padding: 0.55rem 1rem;
@@ -328,7 +333,7 @@
 	button.ghost {
 		background: transparent;
 		color: var(--muted);
-		border: 1px solid var(--panel-border);
+		border: 1px solid var(--border);
 	}
 
 	button.ghost:hover {
@@ -337,19 +342,17 @@
 	}
 
 	button.danger:hover {
-		color: #ef6c6c;
-		border-color: #ef6c6c;
+		color: #d92d20;
+		border-color: #d92d20;
 	}
 
 	.error {
-		color: #ef6c6c;
-		font-family: var(--mono);
+		color: #d92d20;
 		font-size: 0.85rem;
 	}
 
 	.success {
-		color: #8fbf7f;
-		font-family: var(--mono);
+		color: #12805c;
 		font-size: 0.85rem;
 	}
 
@@ -369,7 +372,6 @@
 	}
 
 	.view-link {
-		font-family: var(--mono);
 		font-size: 0.8rem;
 		color: var(--muted);
 	}
@@ -385,8 +387,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
-		font-family: var(--mono);
 		font-size: 0.78rem;
+		font-weight: 500;
 		color: var(--muted);
 	}
 
@@ -413,7 +415,7 @@
 	.new-form {
 		margin-top: 1.25rem;
 		padding-top: 1.25rem;
-		border-top: 1px dashed var(--panel-border);
+		border-top: 1px dashed var(--border);
 	}
 
 	.manage-list {
@@ -429,15 +431,15 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		background: #0d0f14;
-		border: 1px solid var(--panel-border);
+		background: var(--bg);
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		padding: 0.6rem 0.9rem;
 	}
 
 	.row-title {
-		font-family: var(--mono);
 		font-size: 0.9rem;
+		font-weight: 500;
 	}
 
 	.row .row-actions {
@@ -452,7 +454,7 @@
 	.add-btn {
 		margin-top: 1rem;
 		background: transparent;
-		border: 1px dashed var(--panel-border);
+		border: 1px dashed var(--border);
 		color: var(--accent);
 		width: 100%;
 	}
