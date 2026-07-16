@@ -170,7 +170,7 @@
 			<div class="actions">
 				<a href="#work" class="action-link">View my work →</a>
 				{#if profile?.email}
-					<a href="mailto:{profile.email}" class="action-link">Get in touch →</a>
+					<a href="mailto:{profile.email}" class="action-link">Download Resume →</a>
 				{/if}
 			</div>
 
