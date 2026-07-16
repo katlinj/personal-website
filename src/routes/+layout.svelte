@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 
 	onMount(() => {
-		// Apply theme on initial load
 		try {
 			const savedTheme = localStorage.getItem('theme');
 			if (savedTheme === 'dark' || savedTheme === 'light') {
@@ -17,48 +16,72 @@
 <slot />
 
 <style>
-	/* CSS Variables - Global */
 	:global(:root) {
-		--bg-primary: #ffffff;
-		--bg-secondary: #f8f6f4;
-		--bg-tertiary: #faf8f6;
-		--bg-hover: #fdf6f0;
-		--text-primary: #1a1d24;
-		--text-secondary: #3d3f47;
-		--text-muted: #6b6f7a;
-		--border-color: #f0edea;
-		--border-hover: #e8e3de;
-		--accent: #d4762a;
-		--accent-light: #fdf6f0;
-		--shadow: rgba(0, 0, 0, 0.06);
-		--shadow-hover: rgba(212, 118, 42, 0.10);
-		--badge-bg: #fdf6f0;
-		--card-bg: #faf8f6;
-		--gradient-start: #d4762a;
-		--gradient-end: #f0a050;
+		--bg: #ffffff;
+		--bg-raised: #fafafa;
+		--ink: #111111;
+		--ink-soft: #4a4a4a;
+		--ink-faint: #8a8a8a;
+		--line: #e6e6e4;
+		--line-strong: #d4d4d2;
+		--accent: #b45309;
+		--accent-soft: #fdf3e7;
+		--mark: #fff1a8;
+		--focus: #111111;
+		--modal-bg: #ffffff;
+
+		/* Legacy aliases (used by /admin) mapped onto the new palette */
+		--bg-primary: var(--bg);
+		--bg-secondary: var(--bg-raised);
+		--bg-tertiary: var(--bg-raised);
+		--bg-hover: var(--accent-soft);
+		--text-primary: var(--ink);
+		--text-secondary: var(--ink-soft);
+		--text-muted: var(--ink-faint);
+		--border-color: var(--line);
+		--border-hover: var(--line-strong);
+		--accent-light: var(--accent-soft);
+		--badge-bg: var(--accent-soft);
+		--card-bg: var(--bg-raised);
+		--gradient-start: var(--accent);
+		--gradient-end: var(--accent);
+		--shadow: rgba(17, 17, 17, 0.06);
+		--shadow-hover: rgba(180, 83, 9, 0.12);
 	}
 
 	:global([data-theme='dark']) {
-		--bg-primary: #14161a;
-		--bg-secondary: #1a1d24;
-		--bg-tertiary: #24282f;
-		--bg-hover: #2a1f15;
-		--text-primary: #e8e6e3;
-		--text-secondary: #b8b4ae;
-		--text-muted: #8a8680;
-		--border-color: #2a2d35;
-		--border-hover: #3d3f47;
-		--accent: #e68a2e;
-		--accent-light: #2a1f15;
-		--shadow: rgba(0, 0, 0, 0.3);
-		--shadow-hover: rgba(230, 138, 46, 0.15);
-		--badge-bg: #2a1f15;
-		--card-bg: #1a1d24;
-		--gradient-start: #e68a2e;
-		--gradient-end: #f0a050;
+		--bg: #0a0a0a;
+		--bg-raised: #131313;
+		--ink: #f2f1ee;
+		--ink-soft: #b9b7b1;
+		--ink-faint: #77756f;
+		--line: #232321;
+		--line-strong: #33322f;
+		--accent: #e0975a;
+		--accent-soft: #201812;
+		--mark: #3a3212;
+		--focus: #f2f1ee;
+		--modal-bg: #1c1c1a;
+
+		/* Legacy aliases (used by /admin) mapped onto the new palette */
+		--bg-primary: var(--bg);
+		--bg-secondary: var(--bg-raised);
+		--bg-tertiary: var(--bg-raised);
+		--bg-hover: var(--accent-soft);
+		--text-primary: var(--ink);
+		--text-secondary: var(--ink-soft);
+		--text-muted: var(--ink-faint);
+		--border-color: var(--line);
+		--border-hover: var(--line-strong);
+		--accent-light: var(--accent-soft);
+		--badge-bg: var(--accent-soft);
+		--card-bg: var(--bg-raised);
+		--gradient-start: var(--accent);
+		--gradient-end: var(--accent);
+		--shadow: rgba(0, 0, 0, 0.35);
+		--shadow-hover: rgba(224, 151, 90, 0.18);
 	}
 
-	/* Global Reset */
 	:global(*) {
 		margin: 0;
 		padding: 0;
@@ -71,60 +94,53 @@
 
 	:global(body) {
 		margin: 0;
-		padding: 2rem 1rem;
-		background: var(--bg-secondary);
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
-		color: var(--text-primary);
+		background: var(--bg);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+		color: var(--ink);
 		line-height: 1.6;
-		transition: background 0.3s ease, color 0.3s ease;
+		transition: background 0.25s ease, color 0.25s ease;
 		min-height: 100vh;
-		display: flex;
-		justify-content: center;
-		align-items: flex-start;
+		-webkit-font-smoothing: antialiased;
 	}
 
 	:global(a) {
-		color: var(--accent);
+		color: inherit;
 		text-decoration: none;
-		transition: color 0.2s;
-	}
-
-	:global(a:hover) {
-		color: var(--accent);
 	}
 
 	:global(::selection) {
-		background: var(--accent);
-		color: #ffffff;
+		background: var(--mark);
+		color: #111111;
 	}
 
-	/* Scrollbar styling */
+	:global(:focus-visible) {
+		outline: 2px solid var(--focus);
+		outline-offset: 3px;
+	}
+
 	:global(::-webkit-scrollbar) {
-		width: 8px;
-		height: 8px;
+		width: 10px;
+		height: 10px;
 	}
 
 	:global(::-webkit-scrollbar-track) {
-		background: var(--bg-secondary);
+		background: var(--bg);
 	}
 
 	:global(::-webkit-scrollbar-thumb) {
-		background: var(--border-color);
-		border-radius: 4px;
-		transition: background 0.3s ease;
+		background: var(--line-strong);
+		border-radius: 0;
 	}
 
 	:global(::-webkit-scrollbar-thumb:hover) {
-		background: var(--accent);
+		background: var(--ink-faint);
 	}
 
-	/* Firefox scrollbar */
 	:global(*) {
 		scrollbar-width: thin;
-		scrollbar-color: var(--border-color) var(--bg-secondary);
+		scrollbar-color: var(--line-strong) var(--bg);
 	}
 
-	/* Reduce motion preferences */
 	@media (prefers-reduced-motion: reduce) {
 		:global(*),
 		:global(*::before),
@@ -132,13 +148,6 @@
 			animation-duration: 0.01ms !important;
 			animation-iteration-count: 1 !important;
 			transition-duration: 0.01ms !important;
-		}
-	}
-
-	/* Responsive body padding */
-	@media (max-width: 480px) {
-		:global(body) {
-			padding: 0.5rem;
 		}
 	}
 </style>
